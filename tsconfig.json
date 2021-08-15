@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "dist",
+    "strict": true,
+    "skipLibCheck": true /* Skip type checking of declaration files. */,
+    "esModuleInterop": true,
+  },
+}
