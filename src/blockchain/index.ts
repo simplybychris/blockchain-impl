@@ -1,4 +1,3 @@
-import { threadId } from 'worker_threads';
 import Block from './block';
 
 export default class Blockchain {
@@ -9,41 +8,43 @@ export default class Blockchain {
         this.chain = [Block.generateGenesisBlock()];
     }
 
-    getLatestBlock(){
+    getLatestBlock(): Block {
         return this.chain[this.chain.length - 1];
     }
 
-    addBlock(data: any) {
+    addBlock(data: any): Block {
         const block = Block.mineBlock(this.getLatestBlock(), data);
         this.chain.push(block);
-
         return block;
     }
 
-    isValidChain(chain: Block[]) {
+    isChainValid(chain: Block[]): boolean {
         if (JSON.stringify(chain[0]) !== JSON.stringify(Block.generateGenesisBlock())) return false;
+        return this.validateChain(chain);
+    }
 
+    private validateChain(chain: Block[]): boolean {
+        let block: Block;
+        let lastBlock: Block;
         for (let i = 1; i < chain.length; i++) {
-            const block = chain[i];
-            const lastBlock = chain[i - 1];
-
+            block = chain[i];
+            lastBlock = chain[i - 1];
             if (block.lastHash !== lastBlock.hash ||
-                block.hash !== block.calculateHash()) {
+                block.hash !== Block.calculateBlockHash(block)) {
                 return false;
             }
         }
         return true;
     }
 
-    updateChain(newChain: Block[]) {
+    updateChain(newChain: Block[]): void {
         if (newChain.length <= this.chain.length) {
             console.log('Received chain is not longer than the current chain');
             return;
-        } else if (!this.isValidChain(newChain)) {
-            console.log('The received chain is not valid');
+        } else if (!this.isChainValid(newChain)) {
+            console.log('The received blockchain is not valid');
         }
-
-        console.log('Replacing blockchain width the new chain');
+        console.log('Replacing blockchain with the new chain');
         this.chain = newChain;
     }
 }

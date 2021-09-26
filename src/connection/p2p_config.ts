@@ -1,0 +1,1 @@
+export const peers: string[] = process.env.PEERS ? process.env.PEERS.split(',') : [];

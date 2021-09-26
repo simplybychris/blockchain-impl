@@ -1,43 +1,70 @@
-const SHA256 = require("crypto-js/sha256");
+import SHA256 from "crypto-js/sha256";
+import config from '../../config';
 
 export default class Block {
 
-    constructor(index:number, timestamp: string, lastHash: string, data: any) {
+    constructor(index: number, timestamp: number, hash: string, lastHash: string, data: any, nonce: number, difficulty: number) {
         this.index = index;
         this.timestamp = timestamp;
+        this.hash = hash;
         this.lastHash = lastHash;
         this.data = data;
-        this.hash = this.calculateHash();
+        this.nonce = nonce;
+        this.difficulty = difficulty || config.DIFFICULTY;
     }
-    
+
     index: number;
-    timestamp: string;
+    timestamp: number;
     lastHash: string;
     hash: string;
     data: any;
+    nonce: number;
+    difficulty: number;
 
-    toString() {
+    toString(): string {
         return `
-            index    : ${this.index}
-            timestamp: ${this.timestamp}
-            last hash: ${this.lastHash.substring(0, 10)}
-            hash     : ${this.hash.substring(0, 10)}
-            data     : ${this.data}`;
+            index     : ${this.index}
+            timestamp : ${this.timestamp}
+            last hash : ${this.lastHash.substring(0, 10)}
+            hash      : ${this.hash.substring(0, 10)}
+            data      : ${this.data}
+            nonce     : ${this.nonce}
+            difficulty: ${this.difficulty}`;
     }
 
-    static generateGenesisBlock() {
-        return new this(0, '2021-8-14', '0', "First block");
+    static generateGenesisBlock(): Block {
+        return new this(0, new Date("2021").getTime(), '0', "0", 0, 0, config.DIFFICULTY);
     }
 
-    static mineBlock(lastBlock: Block, data: any) {
-        const timestamp =  new Date(Date.now()).toISOString().split('T')[0]
-        const lastHash = lastBlock.hash;
+    static mineBlock(lastBlock: Block, data: any): Block {
+        let hash: string;
+        let timestamp: number;
+        let nonce: number = 0;
+        let difficulty: number = lastBlock.difficulty;
 
-        return new this(lastBlock.index+1,timestamp, lastHash, data);
+        do {
+            nonce++
+            timestamp = Date.now();
+            difficulty = Block.adjustDifficulty(lastBlock, timestamp);
+            hash = Block.calculateHash(timestamp, lastBlock.lastHash, data, nonce, difficulty);
+        } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty))
+
+        return new this(lastBlock.index + 1, timestamp, hash, lastBlock.hash, data, nonce, difficulty);
     }
 
-    calculateHash(){
-        return SHA256(`${this.index}${this.timestamp}${this.lastHash}${this.data}`).toString();
+    static calculateHash(timestamp: number, lastHash: string, data: any, nonce: number, difficulty: number): string {
+        return SHA256(`${timestamp}${lastHash}${data}${nonce}${difficulty}`).toString();
+    }
+
+    static calculateBlockHash(block: Block): string {
+        const {timestamp, lastHash, data, nonce, difficulty} = block;
+        return Block.calculateHash(timestamp, lastHash, data, nonce, difficulty);
+    }
+
+    static adjustDifficulty(lastBlock: Block, currentTime: number): number {
+        let difficulty: number = lastBlock.difficulty;
+        difficulty = lastBlock.timestamp + config.MINE_RATE > currentTime ? difficulty + 1 : difficulty - 1;
+        return difficulty;
     }
 
 }

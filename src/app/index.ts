@@ -1,25 +1,33 @@
-import express from 'express';
-import Blockchain from '../blockchain/index';
+import express, {Express} from 'express';
+import Blockchain from '../blockchain';
+import P2pServer from '../connection/p2p';
 
-const HTTP_PORT = process.env.HTTP_PORT || 3001;
+const HTTP_PORT: any = process.env.HTTP_PORT || 3001;
+const P2P_PORT: any = process.env.P2P_PORT || 5001;
 
-const app = express();
-const bc = new Blockchain();
+const bc: Blockchain = new Blockchain();
+const p2pServer: P2pServer = new P2pServer(bc);
 
-app.use(express.urlencoded({extended: true})); 
-app.use(express.json());
+const initHttpServer = (httpPort: number) => {
+    const app: Express = express();
+    app.use(express.urlencoded({extended: true}));
+    app.use(express.json());
 
-app.get('/blocks', (req, res) => {
-    res.json(bc.chain);
-})
+    app.get('/blocks', (req, res) => {
+        res.json(bc.chain);
+    })
 
-app.post('/mine', (req, res) => {
-    const block = bc.addBlock(req.body.data);
-    console.log(`New block added: ${block.toString()}`)
+    app.post('/mine', (req, res) => {
+        const block = bc.addBlock(req.body.data);
+        console.log(`New block mined: ${block.toString()}`)
+        p2pServer.syncChains();
+        res.redirect('/blocks');
+    });
 
-    res.redirect('/blocks');
-})
+    app.listen(httpPort, () =>
+        console.log(`Server listening on port: ${httpPort}`)
+    );
+}
 
-app.listen(HTTP_PORT, () =>
-    console.log(`Listening on port ${HTTP_PORT}`)
-);
+initHttpServer(HTTP_PORT);
+p2pServer.initServer(P2P_PORT);
