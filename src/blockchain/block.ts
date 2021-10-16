@@ -1,5 +1,6 @@
 import SHA256 from "crypto-js/sha256";
 import config from '../../config';
+import ChainUtil from "../utils/chain-util";
 
 export default class Block {
 
@@ -47,13 +48,13 @@ export default class Block {
             timestamp = Date.now();
             difficulty = Block.adjustDifficulty(lastBlock, timestamp);
             hash = Block.calculateHash(timestamp, lastBlock.lastHash, data, nonce, difficulty);
-        } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty))
+        } while (hash.substr(0, difficulty) !== '0'.repeat(difficulty))
 
         return new this(lastBlock.index + 1, timestamp, hash, lastBlock.hash, data, nonce, difficulty);
     }
 
     static calculateHash(timestamp: number, lastHash: string, data: any, nonce: number, difficulty: number): string {
-        return SHA256(`${timestamp}${lastHash}${data}${nonce}${difficulty}`).toString();
+        return "" + ChainUtil.genHash(`${timestamp}${lastHash}${data}${nonce}${difficulty}`);
     }
 
     static calculateBlockHash(block: Block): string {
@@ -61,9 +62,10 @@ export default class Block {
         return Block.calculateHash(timestamp, lastHash, data, nonce, difficulty);
     }
 
-    static adjustDifficulty(lastBlock: Block, currentTime: number): number {
+    static adjustDifficulty(lastBlock: Block, currentTimestamp: number): number {
         let difficulty: number = lastBlock.difficulty;
-        difficulty = lastBlock.timestamp + config.MINE_RATE > currentTime ? difficulty + 1 : difficulty - 1;
+        difficulty = lastBlock.timestamp + config.MINE_RATE > currentTimestamp ? difficulty + 1 : difficulty - 1;
+        if (difficulty < 1) difficulty = 1;
         return difficulty;
     }
 

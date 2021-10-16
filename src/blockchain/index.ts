@@ -19,8 +19,7 @@ export default class Blockchain {
     }
 
     isChainValid(chain: Block[]): boolean {
-        if (JSON.stringify(chain[0]) !== JSON.stringify(Block.generateGenesisBlock())) return false;
-        return this.validateChain(chain);
+        return JSON.stringify(chain[0]) !== JSON.stringify(Block.generateGenesisBlock()) ? false : this.validateChain(chain);
     }
 
     private validateChain(chain: Block[]): boolean {
@@ -30,7 +29,7 @@ export default class Blockchain {
             block = chain[i];
             lastBlock = chain[i - 1];
             if (block.lastHash !== lastBlock.hash ||
-                block.hash !== Block.calculateBlockHash(block)) {
+                (block.hash !== Block.calculateBlockHash(block))) {
                 return false;
             }
         }
