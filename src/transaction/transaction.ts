@@ -1,8 +1,9 @@
 import ChainUtil from "../utils/chain-util";
 import TransactionInput from "./transaction-input";
 import TransactionOutput from "./transaction-output";
-import Wallet from "./index";
+import Wallet from "../wallet";
 import * as ecdsa from "elliptic";
+import config from "../../config";
 
 const ec = new ecdsa.ec('secp256k1');
 
@@ -23,10 +24,10 @@ export default class Transaction {
 
         let txOutputs: TransactionOutput [] = [
             {
-                amount: sentAmount, address: recipient
+                amount: sender.balance - sentAmount, address: sender.publicKey
             },
             {
-                amount: sender.balance - sentAmount, address: sender.publicKey
+                amount: sentAmount, address: recipient
             }
         ]
 
@@ -39,6 +40,12 @@ export default class Transaction {
 
         Transaction.sign(sender, transaction);
         return transaction;
+    }
+
+    static assignRewardTransaction(miner: Wallet, blockchainWallet: Wallet) {
+        return Transaction.transactionsWithOutput(blockchainWallet, [
+            {amount: config.MINE_REWARD, address: miner.publicKey},
+            {amount: 9999999, address: '' + config.BLOCKCHAIN_ADDR},])
     }
 
     static sign(sender: Wallet, transaction: Transaction): void {
@@ -60,20 +67,17 @@ export default class Transaction {
         const senderOutput = <TransactionOutput>this.txOutputs.find(output => output.address === senderWallet.publicKey);
 
         if (amount > senderOutput.amount) {
-            throw new RangeError("Amount " + amount + "exceeds balance.");
+            throw new RangeError(`Amount ${amount} exceeds balance.`);
         }
 
+        const recipientOutput = <TransactionOutput>this.txOutputs.find(output => output.address === recipient);
+        if (recipientOutput) {
+            recipientOutput.amount += amount;
+        } else {
+            this.txOutputs.push({amount: amount, address: recipient});
+        }
         senderOutput.amount -= amount;
-        this.txOutputs.push({amount: amount, address: recipient});
         Transaction.sign(senderWallet, this);
         return this;
-    }
-
-    static getPublicKey(privateKey: string): string {
-        return ec.keyFromPrivate(privateKey).getPublic('hex').toString()
-    };
-
-    calculateTxHash(): string {
-        return ChainUtil.genHash(`${this.id}${this.txInput.address}${this.txInput.amount}${this.txInput.timestamp}${this.txOutputs}`);
     }
 }

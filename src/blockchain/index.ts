@@ -1,7 +1,6 @@
 import Block from './block';
 
 export default class Blockchain {
-
     chain: Block[];
 
     constructor() {
@@ -12,17 +11,21 @@ export default class Blockchain {
         return this.chain[this.chain.length - 1];
     }
 
-    addBlock(data: any): Block {
+    getBlockConfirmationsNumber(block: Block): number {
+        return this.chain.slice(block.index).length;
+    }
+
+    addBlock(data: any[] = []): Block {
         const block = Block.mineBlock(this.getLatestBlock(), data);
         this.chain.push(block);
         return block;
     }
 
     isChainValid(chain: Block[]): boolean {
-        return JSON.stringify(chain[0]) !== JSON.stringify(Block.generateGenesisBlock()) ? false : this.validateChain(chain);
+        return JSON.stringify(chain[0]) !== JSON.stringify(Block.generateGenesisBlock()) ? false : Blockchain.validateChain(chain);
     }
 
-    private validateChain(chain: Block[]): boolean {
+    private static validateChain(chain: Block[]): boolean {
         let block: Block;
         let lastBlock: Block;
         for (let i = 1; i < chain.length; i++) {
@@ -36,14 +39,9 @@ export default class Blockchain {
         return true;
     }
 
-    updateChain(newChain: Block[]): void {
-        if (newChain.length <= this.chain.length) {
-            console.log('Received chain is not longer than the current chain');
-            return;
-        } else if (!this.isChainValid(newChain)) {
-            console.log('The received blockchain is not valid');
-        }
-        console.log('Replacing blockchain with the new chain');
-        this.chain = newChain;
+    updateChain(chain: Block[]): void {
+        if (this.chain.length === 1) return;
+        if (chain.length <= this.chain.length || !this.isChainValid(chain)) return;
+        this.chain = chain;
     }
 }

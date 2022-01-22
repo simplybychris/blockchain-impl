@@ -2,8 +2,8 @@ import {ec} from "elliptic";
 import Signature = ec.Signature;
 
 export default class TransactionInput {
-    amount: number;
     address: string;
+    amount: number;
     timestamp: number= 0;
     signature: Signature | string = '';
 

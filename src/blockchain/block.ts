@@ -1,8 +1,15 @@
-import SHA256 from "crypto-js/sha256";
 import config from '../../config';
 import ChainUtil from "../utils/chain-util";
+import Transaction from "../transaction/transaction";
 
 export default class Block {
+    index: number;
+    timestamp: number;
+    lastHash: string;
+    hash: string;
+    data: Transaction[];
+    nonce: number;
+    difficulty: number;
 
     constructor(index: number, timestamp: number, hash: string, lastHash: string, data: any, nonce: number, difficulty: number) {
         this.index = index;
@@ -14,30 +21,22 @@ export default class Block {
         this.difficulty = difficulty || config.DIFFICULTY;
     }
 
-    index: number;
-    timestamp: number;
-    lastHash: string;
-    hash: string;
-    data: any;
-    nonce: number;
-    difficulty: number;
-
     toString(): string {
         return `
             index     : ${this.index}
             timestamp : ${this.timestamp}
-            last hash : ${this.lastHash.substring(0, 10)}
-            hash      : ${this.hash.substring(0, 10)}
+            last hash : ${this.lastHash}
+            hash      : ${this.hash}
             data      : ${this.data}
             nonce     : ${this.nonce}
             difficulty: ${this.difficulty}`;
     }
 
     static generateGenesisBlock(): Block {
-        return new this(0, new Date("2021").getTime(), '0', "0", 0, 0, config.DIFFICULTY);
+        return new this(0, new Date("2021").getTime(), '0', "0", [], 0, config.DIFFICULTY);
     }
 
-    static mineBlock(lastBlock: Block, data: any): Block {
+    static mineBlock(lastBlock: Block, data?: any): Block {
         let hash: string;
         let timestamp: number;
         let nonce: number = 0;
