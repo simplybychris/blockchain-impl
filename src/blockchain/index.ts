@@ -39,9 +39,11 @@ export default class Blockchain {
         return true;
     }
 
-    updateChain(chain: Block[]): void {
-        if (this.chain.length === 1) return;
-        if (chain.length <= this.chain.length || !this.isChainValid(chain)) return;
-        this.chain = chain;
+    updateChain(newChain: Block[]): void {
+        if (newChain.length <= this.chain.length) {
+            return;
+        } else if (!this.isChainValid(newChain)) {
+            this.chain = newChain;
+        }
     }
 }

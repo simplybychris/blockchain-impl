@@ -1,4 +1,4 @@
-import ChainUtil from "../utils/chain-util";
+import Utils from "../app/utils";
 import TransactionInput from "./transaction-input";
 import TransactionOutput from "./transaction-output";
 import Wallet from "../wallet";
@@ -13,21 +13,19 @@ export default class Transaction {
     txOutputs: TransactionOutput[];
 
     constructor() {
-        this.id = ChainUtil.genId();
+        this.id = '';
         this.txOutputs = [];
     }
 
-    static newTransaction(sender: Wallet, recipient: string, sentAmount: number): Transaction {
-        if (sentAmount > sender.balance && sentAmount >= 1) {
-            throw new RangeError(`Amount ${sentAmount} exceeds balance.`)
-        }
+    static newTransaction(sender: Wallet, recipient: string, amount: number): Transaction {
+        if (amount > sender.balance && amount >= 1) console.error(`Amount ${amount} exceeds available balance.`);
 
         let txOutputs: TransactionOutput [] = [
             {
-                amount: sender.balance - sentAmount, address: sender.publicKey
+                amount: sender.balance - amount, address: sender.publicKey
             },
             {
-                amount: sentAmount, address: recipient
+                amount: amount, address: recipient
             }
         ]
 
@@ -37,6 +35,7 @@ export default class Transaction {
     static transactionsWithOutput(sender: Wallet, txOutputs: TransactionOutput[]): Transaction {
         const transaction: Transaction = new this();
         transaction.txOutputs.push(...txOutputs);
+        transaction.id = Utils.genHash(transaction);
 
         Transaction.sign(sender, transaction);
         return transaction;
@@ -54,13 +53,13 @@ export default class Transaction {
         transaction.txInput = {
             address: key.getPublic('hex'),
             amount: sender.balance,
-            signature: key.sign(ChainUtil.genHash(transaction.txOutputs)),
+            signature: key.sign(Utils.genHash(transaction.txOutputs)),
             timestamp: Date.now()
-        }
+        };
     }
 
-    static verify(transaction: Transaction): boolean {
-        return ChainUtil.verifySignature(transaction.txInput.address, ChainUtil.genHash(transaction.txOutputs), transaction.txInput.signature)
+    static verifySig(transaction: Transaction): boolean {
+        return Utils.verifySignature(transaction.txInput.address, Utils.genHash(transaction.txOutputs), transaction.txInput.signature)
     }
 
     update(senderWallet: Wallet, recipient: string, amount: number): Transaction {

@@ -1,9 +1,9 @@
-import TransactionPool from "../transaction/transaction-pool";
+import TransactionPool from "./transaction-pool";
 import Blockchain from "../blockchain";
 import Wallet from "../wallet";
 import P2pServer from "../connection/p2p";
-import Transaction from "../transaction/transaction";
-import ChainUtil from "../utils/chain-util";
+import Transaction from "./transaction";
+import Utils from "../app/utils";
 
 export default class Miner {
     blockchain: Blockchain;
@@ -19,15 +19,15 @@ export default class Miner {
     }
 
     mineTransactions() {
-        const validTransactions: Transaction[] = this.txPool.validTransactions();
+        const validTransactions: Transaction[] = this.txPool.getValidTxs();
         validTransactions.push(
             Transaction.assignRewardTransaction(this.minerWallet, Wallet.blockchainWallet())
         );
 
         const block = this.blockchain.addBlock(validTransactions);
         this.p2pServer.syncChains();
-        this.txPool.clearPool();
-        const clearTxMsg = ChainUtil.genHash(ChainUtil.genId());
+        this.txPool.clearTransactionPool();
+        const clearTxMsg = Utils.genHash(Utils.genId());
         this.p2pServer.shareClearTransaction(clearTxMsg);
 
         return block;

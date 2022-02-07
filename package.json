@@ -10,8 +10,8 @@
     "dev": "ts-node-dev --respawn src/app",
     "elliptic": "nodemon --exec ts-node tests/elliptic.test.ts",
     "dev-test": "nodemon --exec ts-node src/dev-test.ts",
-    "dev-env": "cross-env HTTP_PORT=3002 P2P_PORT=5002 PEERS=ws://localhost:5001 ts-node-dev --respawn src/app",
-    "dev-env2": "cross-env HTTP_PORT=3003 P2P_PORT=5003 PEERS=ws://localhost:5002 ts-node-dev --respawn src/app"
+    "dev1": "cross-env HTTP_PORT=4002 P2P_PORT=5002 PEERS=ws://127.0.0.1:5001 ts-node-dev --respawn src/app",
+    "dev2": "cross-env HTTP_PORT=4003 P2P_PORT=5003 PEERS=ws://127.0.0.1:5002 ts-node-dev --respawn src/app"
   },
   "repository": {
     "type": "git",

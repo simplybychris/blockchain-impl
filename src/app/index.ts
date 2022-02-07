@@ -4,15 +4,13 @@ import P2pServer from '../connection/p2p';
 import Wallet from "../wallet";
 import TransactionPool from "../transaction/transaction-pool";
 import Transaction from "../transaction/transaction";
-import Miner from "../miner";
+import Miner from "../transaction/miner";
 import inquirer from 'inquirer';
 import process from 'process';
-import Block from "../blockchain/block";
-import ChainUtil from "../utils/chain-util";
 import config from "../../config";
 
 const ip: any = require('ip');
-const HTTP_PORT: any = process.env.HTTP_PORT || 3001;
+const HTTP_PORT: any = process.env.HTTP_PORT || 4001;
 const P2P_PORT: any = process.env.P2P_PORT || 5001;
 const wallet = new Wallet();
 const txPool = new TransactionPool();
@@ -21,6 +19,7 @@ const p2pServer: P2pServer = new P2pServer(bc, txPool);
 const miner = new Miner(bc, txPool, wallet, p2pServer);
 const app: Express = express();
 const cors = require('cors');
+const routes = require('./routes')(bc, p2pServer, txPool, wallet, miner);
 
 const initHttpServer = (httpPort: number) => {
     app.use(express.urlencoded({extended: true}));
@@ -31,57 +30,7 @@ const initHttpServer = (httpPort: number) => {
 
     app.use(cors(corsOptions));
 
-
-    app.get('/blocks', (req, res) => {
-        res.json(bc.chain);
-    })
-
-    app.post('/confirmations', (req, res) => {
-        const block: Block = req.body;
-        res.json(bc.getBlockConfirmationsNumber(block));
-    })
-
-    app.post('/mine', (req, res) => {
-        const block = bc.addBlock();
-        console.log(`New block mined: ${block.toString()}`)
-        p2pServer.syncChains();
-        res.redirect('/blocks');
-    });
-
-    app.get('/mine-transactions', (req, res) => {
-        const block = miner.mineTransactions();
-        console.log(`New block mined: ${block.toString()}`);
-        p2pServer.syncChains();
-        res.redirect('/blocks');
-    })
-
-    app.get('/transactions', (req, res) => {
-        res.json(txPool.transactions);
-    })
-
-    app.get('/allTxs', (req, res) => {
-        res.json(txPool.transactions.concat(...bc.chain.map((block) => block.data)));
-    })
-
-    app.post('/transact', (req, res) => {
-        const {recipient, amount} = req.body;
-        const transaction: Transaction = wallet.createTransaction(recipient, amount, txPool, bc);
-        p2pServer.shareTransaction(transaction);
-        res.redirect('/transactions');
-    })
-
-    app.post('/balance', (req, res) => {
-        const {publicKey} = req.body;
-        res.json(ChainUtil.calculateBalance(bc, publicKey));
-    })
-
-    app.get('/pubkey', (req, res) => {
-        res.json({publicKey: wallet.publicKey});
-    })
-
-    app.get('/peers', (req, res) => {
-        res.json(new Array(...p2pServer.peersIp));
-    })
+    app.use('/', routes);
 
     app.listen(httpPort, () =>
         console.log('\x1b[33m%s\x1b[0m', `Server listening on port: ${httpPort}\n`)
@@ -90,8 +39,7 @@ const initHttpServer = (httpPort: number) => {
 
 const delay = (ms: number) => {
     const startPoint = new Date().getTime()
-    while (new Date().getTime() - startPoint <= ms) {/* wait */
-    }
+    while (new Date().getTime() - startPoint <= ms);
 }
 
 initHttpServer(HTTP_PORT);
@@ -195,7 +143,6 @@ let displayMenu = () => {
 let mine = async (): Promise<void> => {
     const block = bc.addBlock();
     console.log(`New block mined: ${block.toString()}`)
-    // p2pServer.connectToPeers();
     p2pServer.syncChains();
     setTimeout(() => {
         miner.mineTransactions();

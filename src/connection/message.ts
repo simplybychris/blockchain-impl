@@ -1,5 +1,5 @@
 export enum MessageType {
     chain = 'CHAIN',
-    transaction = "TRANSACTION",
-    clear_tx = "CLEAR_TRANSACTION",
+    transaction = "TX",
+    clear_tx = "CLEAR_TX",
 }

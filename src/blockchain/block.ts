@@ -1,5 +1,5 @@
 import config from '../../config';
-import ChainUtil from "../utils/chain-util";
+import Utils from "../app/utils";
 import Transaction from "../transaction/transaction";
 
 export default class Block {
@@ -33,7 +33,7 @@ export default class Block {
     }
 
     static generateGenesisBlock(): Block {
-        return new this(0, new Date("2021").getTime(), '0', "0", [], 0, config.DIFFICULTY);
+        return new this(0, new Date("2021").getTime(), config.BLOCKCHAIN_ADDR, "0", [], 0, config.DIFFICULTY);
     }
 
     static mineBlock(lastBlock: Block, data?: any): Block {
@@ -53,7 +53,7 @@ export default class Block {
     }
 
     static calculateHash(timestamp: number, lastHash: string, data: any, nonce: number, difficulty: number): string {
-        return "" + ChainUtil.genHash(`${timestamp}${lastHash}${data}${nonce}${difficulty}`);
+        return "" + Utils.genHash(`${timestamp}${lastHash}${data}${nonce}${difficulty}`);
     }
 
     static calculateBlockHash(block: Block): string {
@@ -64,7 +64,7 @@ export default class Block {
     static adjustDifficulty(lastBlock: Block, currentTimestamp: number): number {
         let difficulty: number = lastBlock.difficulty;
         difficulty = lastBlock.timestamp + config.MINE_RATE > currentTimestamp ? difficulty + 1 : difficulty - 1;
-        if (difficulty < 1) difficulty = 1;
+        if (difficulty < config.DIFFICULTY) difficulty = config.DIFFICULTY;
         return difficulty;
     }
 

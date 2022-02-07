@@ -4,9 +4,8 @@ import {peers} from './p2p_config';
 import TransactionPool from "../transaction/transaction-pool";
 import Transaction from "../transaction/transaction";
 import {MessageType} from "./message";
-import ChainUtil from "../utils/chain-util";
+import Utils from "../app/utils";
 import {IncomingMessage} from "http";
-import config from "../../config";
 
 export default class P2pServer {
     server: WebSocket.Server | undefined;
@@ -36,8 +35,6 @@ export default class P2pServer {
         })
         this.connectToPeers();
         console.log('\x1b[33m%s\x1b[0m', `Listening for p2p connections on port: ${p2pPort}`);
-        console.log(this.server.address());
-
     }
 
     private managePeer(req: IncomingMessage, socket: WebSocket) {
@@ -54,7 +51,6 @@ export default class P2pServer {
     }
 
     connectSocket(socket: WebSocket): void {
-        if(this.sockets.length === config.MAX_PEERS) return;
         this.sockets.push(socket);
         this.messageHandler(socket);
         this.sendChain(socket);
@@ -62,7 +58,6 @@ export default class P2pServer {
 
     connectToPeers(): void {
         peers.forEach(peer => {
-            if(this.sockets.length === config.MAX_PEERS) return;
             const socket = new WebSocket(peer);
             socket.on('error', () => console.error("\nError connecting to :", peer));
             socket.on('open', () => {
@@ -81,17 +76,17 @@ export default class P2pServer {
     messageHandler(socket: WebSocket): void {
         socket.on('message', msg => {
             const data = JSON.parse(msg.toString());
-            if (this.receivedMsg && !this.receivedMsg.find(msg => data.msgHash === msg)) {
+            if (!this.receivedMsg?.find(msg => data.msgHash === msg)) {
                 switch (data.type) {
                     case MessageType.chain:
                         this.blockchain.updateChain(data.chain);
                         this.syncChains();
                         break;
                     case MessageType.transaction:
-                        this.txPool.upsertTransaction(data.transaction);
+                        this.txPool.upsertTx(data.transaction);
                         break;
                     case MessageType.clear_tx:
-                        this.txPool.clearPool();
+                        this.txPool.clearTransactionPool();
                         this.shareClearTransaction(data.msgHash);
                         break;
                 }
@@ -108,20 +103,20 @@ export default class P2pServer {
     }
 
     syncChains(): void {
-        const currentMsgHash: string = ChainUtil.genHash(this.blockchain.chain);
+        const currentMsgHash: string = Utils.genHash(this.blockchain.chain);
         this.receivedMsg.push(currentMsgHash);
         this.sockets.forEach(socket => {
             this.sendChain(socket, currentMsgHash);
         });
     }
 
-    shareTransaction(transaction: Transaction) {
+    shareTransaction(transaction: Transaction | undefined) {
         this.sockets.forEach(socket => this.sendTransaction(socket, transaction))
     }
 
     shareClearTransaction(currentMsgHash: string) {
         this.receivedMsg.push(currentMsgHash);
-        this.txPool.clearPool();
+        this.txPool.clearTransactionPool();
         this.sockets.forEach(socket => socket.send(JSON.stringify(
             {
                 type: MessageType.clear_tx,
@@ -130,12 +125,12 @@ export default class P2pServer {
         )));
     }
 
-    private sendTransaction(socket: WebSocket, transaction: Transaction) {
-        const currentMsgHash: string = ChainUtil.genHash(transaction);
+    private sendTransaction(socket: WebSocket, transaction: Transaction | undefined) {
+        const currentMsgHash: string = Utils.genHash(transaction);
         this.receivedMsg.push(currentMsgHash);
         socket.send(JSON.stringify({
             type: MessageType.transaction,
-            msgHash: ChainUtil.genHash(transaction),
+            msgHash: Utils.genHash(transaction),
             transaction
         }));
     }

@@ -8,36 +8,33 @@ export default class TransactionPool {
         this.transactions = [];
     }
 
-    upsertTransaction(transaction: Transaction) {
-        let transactionById: Transaction | undefined = this.findTransactionById(transaction.id);
+    upsertTx(transaction: Transaction) {
+        let transactionById: Transaction | undefined = this.findTxById(transaction.id);
 
-        if (transactionById) {
-            this.transactions[this.transactions.indexOf(transactionById)] = transaction;
-        } else {
+        transactionById ? this.transactions[this.transactions.indexOf(transactionById)] = transaction :
             this.transactions.push(transaction);
-        }
     }
 
-    findTransactionById(txId: string) {
+    findTxById(txId: string) {
         return this.transactions.find(tx => tx.id === txId);
     }
 
-    findTransactionByPubKey(publicKey: string) {
+    findTxByPubKey(publicKey: string) {
         return this.transactions.find(t => t.txInput.address === publicKey);
     }
 
-    validTransactions() {
+    getValidTxs() {
         return this.transactions.filter(tx => {
             const totalOutput = tx.txOutputs.reduce((total, output) => {
                 return total + output.amount;
             }, 0);
 
-            if(tx.txInput.amount !== totalOutput) {
+            if (tx.txInput.amount !== totalOutput) {
                 console.warn(`Invalid transaction with id: ${tx.id}`);
                 return;
             }
 
-            if(!Transaction.verify(tx)){
+            if (!Transaction.verifySig(tx)) {
                 console.warn(`Invalid signature for transaction id: ${tx.id}`);
                 return;
             }
@@ -46,7 +43,7 @@ export default class TransactionPool {
         });
     }
 
-    clearPool(): void {
+    clearTransactionPool(): void {
         this.transactions = [];
     }
 }

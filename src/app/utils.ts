@@ -8,7 +8,7 @@ import Blockchain from "../blockchain";
 import Transaction from "../transaction/transaction";
 import config from "../../config";
 
-export default class ChainUtil {
+export default class Utils {
 
     static genHash(data: any): string {
         return SHA256(JSON.stringify(data)).toString();
